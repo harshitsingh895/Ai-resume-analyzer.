@@ -1,0 +1,280 @@
+{
+  "name": "Resume Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Resume Analyzer",
+        "formDescription": "Upload your resume (PDF) and we will send you an AI-powered analysis.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name",
+              "fieldName": "Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "fieldName": "Email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume",
+              "fieldType": "file",
+              "fieldName": "Resume",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Submit"
+        }
+      },
+      "id": "315c8b66-c735-448b-b66a-39ba02365119",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "19958b40-7c64-4bc0-be5b-401303dd3f5a"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Resume",
+        "options": {
+          "joinPages": true
+        }
+      },
+      "id": "4d6c5168-0511-4d14-ae74-6180e09957f8",
+      "name": "Extract from File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following resume and provide detailed, constructive feedback.\n\nResume:\n{{ $json.text }}",
+        "options": {
+          "systemMessage": "You are an expert resume reviewer and career coach. Given the raw text of a resume, produce a well-structured analysis in Markdown format. Include: 1) an overall summary, 2) strengths, 3) areas for improvement, 4) missing keywords/skills for common ATS systems, and 5) a suggested action plan. Use Markdown headings, bullet points, and bold text."
+        }
+      },
+      "id": "6f0cdb6c-eda7-4ca1-a0b7-16121583048b",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "id": "6fd85968-8740-47ec-b621-10a6a59179d4",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        336
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7BeuJQpSELOvYCnK",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.output }}",
+        "options": {
+          "completeHTMLDocument": false,
+          "tasklists": true,
+          "simpleLineBreaks": true,
+          "strikethrough": true,
+          "tables": true
+        }
+      },
+      "id": "d6362588-7660-4c9c-96c2-5f4e115b3729",
+      "name": "Markdown to HTML",
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        800,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const bodyHtml = $input.first().json.data;\nconst html = `\n<html>\n  <head>\n    <meta charset=\"utf-8\" />\n    <style>\n      body { font-family: Arial, Helvetica, sans-serif; color: #222; padding: 40px; line-height: 1.5; }\n      h1, h2, h3 { color: #1a1a1a; }\n      h1 { border-bottom: 2px solid #4a4a4a; padding-bottom: 8px; }\n      ul { margin: 8px 0; padding-left: 24px; }\n      code { background: #f4f4f4; padding: 2px 4px; border-radius: 4px; }\n    </style>\n  </head>\n  <body>${bodyHtml}</body>\n</html>`;\n\nreturn [{ json: { html } }];"
+      },
+      "id": "8d9d987d-2888-49e1-940a-441cf2d62cfc",
+      "name": "Build HTML Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "html_content": "={{ $json.html }}",
+        "output_filename": "resume-analysis"
+      },
+      "id": "aad39137-3c27-459b-927a-b67c51bb3757",
+      "name": "Convert HTML to PDF",
+      "type": "n8n-nodes-htmlcsstopdf.htmlcsstopdf",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        112
+      ],
+      "credentials": {
+        "htmlcsstopdfApi": {
+          "id": "8Dam9jVrcgNmasht",
+          "name": "HTML to PDF account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Resume Analyzer Log"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "Sheet1"
+        }
+      },
+      "id": "9a2e7330-1d03-434b-bb2d-0f3502fbcc46",
+      "name": "Append row in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1472,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "7sRgg1LdBIFnocsO",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Markdown to HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown to HTML": {
+      "main": [
+        [
+          {
+            "node": "Build HTML Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build HTML Document": {
+      "main": [
+        [
+          {
+            "node": "Convert HTML to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert HTML to PDF": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "d14d8749-4f3a-4aaa-9041-5a377d2d0939",
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp",
+    "instanceId": "5402dbd680a6144292edf34248c6d2728d48c73b6f36c803858dfdd57bfcaa0f"
+  },
+  "nodeGroups": [],
+  "id": "tEL1jdlSlpl6oEEh",
+  "tags": []
+}
